@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package de.indiplex.inventorymanager.event;
+package de.indiplex.moreevents.event;
 
 import de.indiplex.moreevents.IMNetHandler.InventorySlotType;
 import org.bukkit.event.HandlerList;

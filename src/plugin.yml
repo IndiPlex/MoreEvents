@@ -1,0 +1,6 @@
+name: MoreEvents
+
+author: IndiPlex Team
+
+main: de.indiplex.moreevents.MEvents
+version: 0.0.1

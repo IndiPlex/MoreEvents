@@ -17,7 +17,7 @@
  */
 package de.indiplex.moreevents;
 
-import de.indiplex.inventorymanager.event.InventoryClickEvent;
+import de.indiplex.moreevents.event.InventoryClickEvent;
 import java.lang.reflect.Field;
 import net.minecraft.server.Container;
 import net.minecraft.server.ContainerBrewingStand;

@@ -15,7 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package de.indiplex.inventorymanager.event;
+package de.indiplex.moreevents.event;
 
 import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
