@@ -17,6 +17,7 @@
  */
 package de.indiplex.moreevents;
 
+import de.indiplex.manager.IPMAPI;
 import de.indiplex.manager.IPMPlugin;
 import java.lang.reflect.Field;
 import net.minecraft.server.NetServerHandler;
@@ -24,10 +25,14 @@ import net.minecraft.server.NetworkManager;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.getspout.spoutapi.event.inventory.InventoryClickEvent;
+import org.getspout.spoutapi.event.inventory.InventoryPlayerClickEvent;
+import org.getspout.spoutapi.event.inventory.InventorySlotType;
 
 /**
  *
@@ -36,31 +41,56 @@ import org.bukkit.event.player.PlayerJoinEvent;
 public class MEvents extends IPMPlugin {
 
     @Override
-    protected String onIPMEnable() {
+    public void onEnable() {
 
-        Listener l = new Listener() {
-            @EventHandler(priority= EventPriority.HIGH)
-            public void onJoin(PlayerJoinEvent e) {
-                CraftPlayer p = (CraftPlayer) e.getPlayer();
-                CraftServer cs = (CraftServer) getServer();
-                Location loc = p.getLocation();
-                IMNetHandler imnh = new IMNetHandler(cs.getHandle().server, p.getHandle().netServerHandler.networkManager, p.getHandle());
-                imnh.a(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
-                p.getHandle().netServerHandler = imnh;
-                NetworkManager nm = p.getHandle().netServerHandler.networkManager;
-                System.out.println(setNetServerHandler(nm, imnh));
-                cs.getServer().networkListenThread.a(imnh);
-            }
-        };
-        
+        Listener l = null;
+
+        if (getServer().getPluginManager().isPluginEnabled("Spout")) {
+            l = new Listener() {
+                @EventHandler(priority=EventPriority.HIGH)
+                public void onSpoutInventoryClickEvent(InventoryClickEvent event) {
+                    if (event.getItem()==null) {
+                        return;
+                    }
+                    getServer().getPluginManager().callEvent(createEvent(event));
+                }
+                
+                @EventHandler(priority=EventPriority.HIGH)
+                public void onSpoutInventoryPlayerClickEvent(InventoryPlayerClickEvent event) {
+                    if (event.getItem()==null) {
+                        return;
+                    }
+                    getServer().getPluginManager().callEvent(createEvent(event));
+                }
+                
+                private Event createEvent(InventoryClickEvent event) {
+                    Event e = new de.indiplex.moreevents.event.InventoryClickEvent(event.getInventory(), getSlotTypeBySpoutType(event.getSlotType()), event.getItem(), event.getPlayer(), event.getRawSlot());
+                    return e;
+                }
+            };
+        } else {
+            l = new Listener() {
+
+                @EventHandler(priority = EventPriority.HIGH)
+                public void onJoin(PlayerJoinEvent e) {
+                    CraftPlayer p = (CraftPlayer) e.getPlayer();
+                    CraftServer cs = (CraftServer) getServer();
+                    Location loc = p.getLocation();
+                    IMNetHandler imnh = new IMNetHandler(cs.getHandle().server, p.getHandle().netServerHandler.networkManager, p.getHandle());
+                    imnh.a(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
+                    p.getHandle().netServerHandler = imnh;
+                    NetworkManager nm = p.getHandle().netServerHandler.networkManager;
+                    setNetServerHandler(nm, imnh);
+                    cs.getServer().networkListenThread.a(imnh);
+                }
+            };
+        }
+
         getServer().getPluginManager().registerEvents(l, this);
-
-        return null;
     }
 
     @Override
-    protected String onIPMDisable() {
-        return null;
+    public void onDisable() {
     }
 
     private boolean setNetServerHandler(NetworkManager nm, NetServerHandler nsh) {
@@ -80,4 +110,20 @@ public class MEvents extends IPMPlugin {
         }
         return true;
     }
+    
+    private IMNetHandler.InventorySlotType getSlotTypeBySpoutType(InventorySlotType st) {
+        return IMNetHandler.InventorySlotType.valueOf(st.toString());
+    }
+    
+    private static IPMAPI API;
+
+    @Override
+    protected void init(IPMAPI API) {
+        MEvents.API = API;
+    }
+
+    public static IPMAPI getAPI() {
+        return API;
+    }
+    
 }

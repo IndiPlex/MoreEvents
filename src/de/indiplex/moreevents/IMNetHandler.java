@@ -65,7 +65,7 @@ public class IMNetHandler extends NetServerHandler {
         Inventory inv = getActiveInventory();
         InventorySlotType ist = getActiveInventorySlotType(pack.b, inv);
 
-        Event event = new InventoryClickEvent(inv, ist, is);
+        Event event = new InventoryClickEvent(inv, ist, is, getPlayer(), pack.b);
         Bukkit.getPluginManager().callEvent(event);
     }
 
