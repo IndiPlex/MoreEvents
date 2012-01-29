@@ -17,20 +17,35 @@ import org.bukkit.inventory.ItemStack;
 public class InventoryClickEvent extends InventoryEvent {
     private InventorySlotType inventorySlotType;
     private ItemStack itemStack;
+    private ItemStack cursor;
     private Player player;
     private int clicked;
     private static final HandlerList handlers = new HandlerList();
+    private boolean cancelled = false;
 
-    public InventoryClickEvent(Inventory inventory, InventorySlotType inventorySlotType, ItemStack itemStack, Player player, int clicked) {
+    public InventoryClickEvent(Inventory inventory, InventorySlotType inventorySlotType, ItemStack itemStack, ItemStack cursor, Player player, int clicked) {
         super(inventory);
         this.inventorySlotType = inventorySlotType;
         this.itemStack = itemStack;
+        this.cursor = cursor;
         this.player = player;
         this.clicked = clicked;
     }
 
     public InventorySlotType getInventorySlotType() {
         return inventorySlotType;
+    }
+
+    public ItemStack getCursor() {
+        return cursor;
+    }
+
+    public boolean isCancelled() {
+        return cancelled;
+    }
+
+    public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
     }
 
     public ItemStack getItemStack() {

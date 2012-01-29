@@ -19,6 +19,7 @@ package de.indiplex.moreevents;
 
 import de.indiplex.moreevents.event.InventoryClickEvent;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import net.minecraft.server.Container;
 import net.minecraft.server.ContainerBrewingStand;
 import net.minecraft.server.ContainerChest;
@@ -29,10 +30,13 @@ import net.minecraft.server.ContainerPlayer;
 import net.minecraft.server.ContainerWorkbench;
 import net.minecraft.server.EntityPlayer;
 import net.minecraft.server.IInventory;
+import net.minecraft.server.IntHashMap;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.NetServerHandler;
 import net.minecraft.server.NetworkManager;
 import net.minecraft.server.Packet102WindowClick;
+import net.minecraft.server.Packet106Transaction;
+import net.minecraft.server.Slot;
 import net.minecraft.server.TileEntityBrewingStand;
 import net.minecraft.server.TileEntityDispenser;
 import net.minecraft.server.TileEntityFurnace;
@@ -41,7 +45,6 @@ import org.bukkit.Material;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftInventoryPlayer;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
-import org.bukkit.event.Event;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
@@ -51,22 +54,74 @@ import org.bukkit.inventory.ItemStack;
  */
 public class IMNetHandler extends NetServerHandler {
 
+    protected Field entityListField = null;
+
     public IMNetHandler(MinecraftServer minecraftserver, NetworkManager networkmanager, EntityPlayer entityplayer) {
         super(minecraftserver, networkmanager, entityplayer);
+
+        try {
+            entityListField = NetServerHandler.class.getDeclaredField("r");
+            entityListField.setAccessible(true);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void a(Packet102WindowClick pack) {
-        super.a(pack);
         ItemStack is = new CraftItemStack(pack.e);
-        if (is.getType().equals(Material.AIR)) {
-            return;
-        }
-        Inventory inv = getActiveInventory();
-        InventorySlotType ist = getActiveInventorySlotType(pack.b, inv);
+        InventoryClickEvent event = null;
+        boolean can = false;
+        if (!is.getType().equals(Material.AIR)) {
+            Inventory inv = getActiveInventory();
+            InventorySlotType ist = getActiveInventorySlotType(pack.b, inv);
 
-        Event event = new InventoryClickEvent(inv, ist, is, getPlayer(), pack.b);
-        Bukkit.getPluginManager().callEvent(event);
+            event = new InventoryClickEvent(inv, ist, is, new CraftItemStack(this.player.inventory.l()), getPlayer(), pack.b);
+            Bukkit.getPluginManager().callEvent(event);
+            can = event.isCancelled();
+        }
+        if (!can) {
+            System.out.println("yay");
+            super.a(pack);
+        } else {
+            CraftItemStack slot = (CraftItemStack) event.getItemStack();
+            CraftItemStack cursor = (CraftItemStack) event.getCursor();
+            net.minecraft.server.ItemStack itemstack = slot != null ? slot.getHandle() : null;
+            net.minecraft.server.ItemStack cursorstack = cursor != null ? cursor.getHandle() : null;
+
+            if (pack.b != -999) { // Only swap if target is not OUTSIDE
+                if (itemstack != null) {
+                    player.activeContainer.b(pack.b).c(itemstack);
+                    player.inventory.b((net.minecraft.server.ItemStack) null);
+                }
+                if (event.getCursor() != null) {
+                    player.activeContainer.b(pack.b).c(itemstack);
+                    player.inventory.b(cursorstack);
+                }
+            }
+
+            getEntityList().a(Integer.valueOf(this.player.activeContainer.windowId), Short.valueOf(pack.d));
+            player.netServerHandler.sendPacket(new Packet106Transaction(pack.a, pack.d, false));
+            this.player.activeContainer.a(this.player, false);
+            ArrayList<net.minecraft.server.ItemStack> arraylist = new ArrayList<net.minecraft.server.ItemStack>();
+
+            for (int i = 0; i < this.player.activeContainer.e.size(); ++i) {
+                arraylist.add(((Slot) this.player.activeContainer.e.get(i)).getItem());
+            }
+
+            this.player.a(this.player.activeContainer, arraylist);
+        }
+    }
+
+    public IntHashMap getEntityList() {
+        try {
+            return (IntHashMap) entityListField.get(this);
+        } catch (IllegalArgumentException e) {
+            e.printStackTrace();
+        } catch (IllegalAccessException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public InventorySlotType getActiveInventorySlotType(int clicked, Inventory inv) {

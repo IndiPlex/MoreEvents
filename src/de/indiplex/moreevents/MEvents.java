@@ -25,6 +25,7 @@ import net.minecraft.server.NetworkManager;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -47,24 +48,25 @@ public class MEvents extends IPMPlugin {
 
         if (getServer().getPluginManager().isPluginEnabled("Spout")) {
             l = new Listener() {
-                @EventHandler(priority=EventPriority.HIGH)
+
+                @EventHandler(priority = EventPriority.HIGH)
                 public void onSpoutInventoryClickEvent(InventoryClickEvent event) {
-                    if (event.getItem()==null) {
+                    if (event.getItem() == null) {
                         return;
                     }
                     getServer().getPluginManager().callEvent(createEvent(event));
                 }
-                
-                @EventHandler(priority=EventPriority.HIGH)
+
+                @EventHandler(priority = EventPriority.HIGH)
                 public void onSpoutInventoryPlayerClickEvent(InventoryPlayerClickEvent event) {
-                    if (event.getItem()==null) {
+                    if (event.getItem() == null) {
                         return;
                     }
                     getServer().getPluginManager().callEvent(createEvent(event));
                 }
-                
+
                 private Event createEvent(InventoryClickEvent event) {
-                    Event e = new de.indiplex.moreevents.event.InventoryClickEvent(event.getInventory(), getSlotTypeBySpoutType(event.getSlotType()), event.getItem(), event.getPlayer(), event.getRawSlot());
+                    Event e = new de.indiplex.moreevents.event.InventoryClickEvent(event.getInventory(), getSlotTypeBySpoutType(event.getSlotType()), event.getItem(), event.getCursor(), event.getPlayer(), event.getRawSlot());
                     return e;
                 }
             };
@@ -73,17 +75,12 @@ public class MEvents extends IPMPlugin {
 
                 @EventHandler(priority = EventPriority.HIGH)
                 public void onJoin(PlayerJoinEvent e) {
-                    CraftPlayer p = (CraftPlayer) e.getPlayer();
-                    CraftServer cs = (CraftServer) getServer();
-                    Location loc = p.getLocation();
-                    IMNetHandler imnh = new IMNetHandler(cs.getHandle().server, p.getHandle().netServerHandler.networkManager, p.getHandle());
-                    imnh.a(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
-                    p.getHandle().netServerHandler = imnh;
-                    NetworkManager nm = p.getHandle().netServerHandler.networkManager;
-                    setNetServerHandler(nm, imnh);
-                    cs.getServer().networkListenThread.a(imnh);
+                    patchPlayer(e.getPlayer());
                 }
             };
+            for (Player p : getServer().getOnlinePlayers()) {
+                patchPlayer(p);
+            }
         }
 
         getServer().getPluginManager().registerEvents(l, this);
@@ -91,6 +88,18 @@ public class MEvents extends IPMPlugin {
 
     @Override
     public void onDisable() {
+    }
+
+    private void patchPlayer(Player player) {
+        CraftPlayer p = (CraftPlayer) player;
+        CraftServer cs = (CraftServer) getServer();
+        Location loc = p.getLocation();
+        IMNetHandler imnh = new IMNetHandler(cs.getHandle().server, p.getHandle().netServerHandler.networkManager, p.getHandle());
+        imnh.a(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
+        p.getHandle().netServerHandler = imnh;
+        NetworkManager nm = p.getHandle().netServerHandler.networkManager;
+        setNetServerHandler(nm, imnh);
+        cs.getServer().networkListenThread.a(imnh);
     }
 
     private boolean setNetServerHandler(NetworkManager nm, NetServerHandler nsh) {
@@ -110,11 +119,10 @@ public class MEvents extends IPMPlugin {
         }
         return true;
     }
-    
+
     private IMNetHandler.InventorySlotType getSlotTypeBySpoutType(InventorySlotType st) {
         return IMNetHandler.InventorySlotType.valueOf(st.toString());
     }
-    
     private static IPMAPI API;
 
     @Override
@@ -125,5 +133,4 @@ public class MEvents extends IPMPlugin {
     public static IPMAPI getAPI() {
         return API;
     }
-    
 }
