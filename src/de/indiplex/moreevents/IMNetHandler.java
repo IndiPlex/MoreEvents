@@ -81,7 +81,6 @@ public class IMNetHandler extends NetServerHandler {
             can = event.isCancelled();
         }
         if (!can) {
-            System.out.println("yay");
             super.a(pack);
         } else {
             CraftItemStack slot = (CraftItemStack) event.getItemStack();
